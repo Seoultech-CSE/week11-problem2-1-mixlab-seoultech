@@ -2,21 +2,21 @@ import java.util.Scanner;
 import java.util.InputMismatchException;
 
 // 1. Custom Checked Exception Class
-// TODO: Inherit from the correct class to make this a Checked Exception.
-class InsufficientBalanceException { 
+class InsufficientBalanceException extends Exception { // Extends Exception to make it checked 
     private double balance;
     private double amount;
 
     public InsufficientBalanceException(double balance, double amount) {
-        // TODO: Invoke the superclass constructor with a clear error message[cite: 289].
-        
+        super("Insufficient balance. Current: $" + balance + ", Requested: $" + amount);
+        this.balance = balance;
+        this.amount = amount;
     }
 
     public double getBalance() { return balance; }
     public double getAmount() { return amount; }
 }
 
-// 2. Integrated Core Class
+// 2. Core Bank Class containing the execution entry point (No separate Main class)
 public class BankAccount {
     private double balance;
 
@@ -28,49 +28,64 @@ public class BankAccount {
         return balance;
     }
 
+    // Business logic for deposit (Throws Unchecked Exception) 
     public void deposit(double amount) {
-        // TODO: Validate input and throw an IllegalArgumentException if amount is <= 0[cite: 102].
-        
-        
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Deposit amount must be positive.");
+        }
         balance += amount;
         System.out.println("$" + amount + " successfully deposited.");
     }
 
-    // TODO: Add the proper exception declaration to the method signature[cite: 95].
-    public void withdraw(double amount) {
-        // TODO: Validate balance and throw your custom InsufficientBalanceException if needed[cite: 110].
-        
-        
+    // Business logic for withdrawal (Throws Checked Exception) [cite: 94, 98]
+    public void withdraw(double amount) throws InsufficientBalanceException {
+        if (amount > balance) {
+            throw new InsufficientBalanceException(balance, amount);
+        }
         balance -= amount;
         System.out.println("$" + amount + " successfully withdrawn.");
     }
 
+    // Interactive main method inside the same class
     public static void main(String[] args) {
-        Scanner input = new Scanner(System.in);
-        BankAccount account = new BankAccount(500.0); 
+        Scanner input = new Scanner(System.in); // Initialize Scanner for user input 
+        BankAccount account = new BankAccount(500.0); // Create account with initial balance $500
 
         System.out.println("=== Welcome to the Interactive Banking System ===");
         System.out.println("Initial Balance: $500.0");
 
-        // --- DEPOSIT PROCESS ---
-        // TODO: Wrap the deposit process in a try-catch-finally layout[cite: 34].
-        // Catch InputMismatchException and IllegalArgumentException, and always display the balance[cite: 44, 151].
-        System.out.print("\nEnter the amount to DEPOSIT: ");
-        double depositAmount = input.nextDouble();
-        account.deposit(depositAmount);
-        
+        try {
+            // Step 1: Interactive Deposit Test
+            System.out.print("\nEnter the amount to DEPOSIT: ");
+            double depositAmount = input.nextDouble(); // May throw InputMismatchException 
+            account.deposit(depositAmount);
 
+        } catch (InputMismatchException e) { // Catch block for incorrect data types [cite: 44]
+            System.out.println("Input Error: Invalid format. A numeric value is required.");
+            input.nextLine(); // Discard the invalid input buffer 
+        } catch (IllegalArgumentException e) { // Catch block for business rule violation [cite: 114]
+            System.out.println("Business Rule Violation: " + e.getMessage());
+        } finally {
+            // Always executes to show the current state 
+            System.out.println("[Current Balance Status] $" + account.getBalance());
+        }
 
-        // --- WITHDRAWAL PROCESS ---
-        // TODO: Wrap the withdrawal process in a try-catch-finally layout[cite: 34].
-        // Catch InputMismatchException and InsufficientBalanceException, and always display the balance[cite: 44, 151].
-        System.out.print("\nEnter the amount to WITHDRAW: ");
-        double withdrawAmount = input.nextDouble();
-        account.withdraw(withdrawAmount);
-        
+        try {
+            // Step 2: Interactive Withdrawal Test
+            System.out.print("\nEnter the amount to WITHDRAW: ");
+            double withdrawAmount = input.nextDouble(); 
+            account.withdraw(withdrawAmount);
 
-
-        System.out.println("\n=== Thank you for using our service ===");
-        input.close();
+        } catch (InputMismatchException e) {
+            System.out.println("Input Error: Invalid format. A numeric value is required.");
+            input.nextLine(); 
+        } catch (InsufficientBalanceException e) { // Catch block for custom checked exception [cite: 114]
+            System.out.println("Transaction Denied: " + e.getMessage());
+        } finally {
+            // Always executes regardless of exceptions 
+            System.out.println("[Current Balance Status] $" + account.getBalance());
+            System.out.println("\n=== Thank you for using our service ===");
+            input.close(); // Close the resource
+        }
     }
 }
