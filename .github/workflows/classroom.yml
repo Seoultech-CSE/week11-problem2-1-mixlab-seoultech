@@ -1,0 +1,92 @@
+name: Autograding Tests
+'on':
+- push
+- repository_dispatch
+permissions:
+  checks: write
+  actions: read
+  contents: read
+jobs:
+  run-autograding-tests:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-classroom[bot]'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: 'Case 1: Normal Flow'
+      id: case-1-normal-flow
+      uses: classroom-resources/autograding-io-grader@v1
+      with:
+        test-name: 'Case 1: Normal Flow'
+        setup-command: javac BankAccount.java
+        command: java BankAccount
+        input: |-
+          200.0
+          300.0
+        expected-output: |-
+          $200.0 successfully deposited.
+          [Current Balance Status] $700.0
+          $300.0 successfully withdrawn.
+          [Current Balance Status] $400.0
+        comparison-method: contains
+        timeout: 10
+    - name: 'Case 2: Invalid Deposit'
+      id: case-2-invalid-deposit
+      uses: classroom-resources/autograding-io-grader@v1
+      with:
+        test-name: 'Case 2: Invalid Deposit'
+        setup-command: javac BankAccount.java
+        command: java BankAccount
+        input: |-
+          -50.0
+          100.0
+        expected-output: |-
+          Business Rule Violation: Deposit amount must be positive.
+          [Current Balance Status] $500.0
+          $100.0 successfully withdrawn.
+          [Current Balance Status] $400.0
+        comparison-method: contains
+        timeout: 10
+    - name: 'Case 3: Over-withdrawal'
+      id: case-3-over-withdrawal
+      uses: classroom-resources/autograding-io-grader@v1
+      with:
+        test-name: 'Case 3: Over-withdrawal'
+        setup-command: javac BankAccount.java
+        command: java BankAccount
+        input: |-
+          100.0
+          1000.0
+        expected-output: |-
+          $100.0 successfully deposited.
+          [Current Balance Status] $600.0
+          Transaction Denied: Insufficient balance. Current: $600.0, Requested: $1000.0
+          [Current Balance Status] $600.0
+        comparison-method: contains
+        timeout: 10
+    - name: 'Case 4: Input Mismatch'
+      id: case-4-input-mismatch
+      uses: classroom-resources/autograding-io-grader@v1
+      with:
+        test-name: 'Case 4: Input Mismatch'
+        setup-command: javac BankAccount.java
+        command: java BankAccount
+        input: |-
+          abc
+          200.0
+        expected-output: |-
+          Input Error: Invalid format. A numeric value is required.
+          [Current Balance Status] $500.0
+          $200.0 successfully withdrawn.
+          [Current Balance Status] $300.0
+        comparison-method: contains
+        timeout: 10
+    - name: Autograding Reporter
+      uses: classroom-resources/autograding-grading-reporter@v1
+      env:
+        CASE-1-NORMAL-FLOW_RESULTS: "${{steps.case-1-normal-flow.outputs.result}}"
+        CASE-2-INVALID-DEPOSIT_RESULTS: "${{steps.case-2-invalid-deposit.outputs.result}}"
+        CASE-3-OVER-WITHDRAWAL_RESULTS: "${{steps.case-3-over-withdrawal.outputs.result}}"
+        CASE-4-INPUT-MISMATCH_RESULTS: "${{steps.case-4-input-mismatch.outputs.result}}"
+      with:
+        runners: case-1-normal-flow,case-2-invalid-deposit,case-3-over-withdrawal,case-4-input-mismatch
